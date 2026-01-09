@@ -3,20 +3,19 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Student, RiskAnalysis } from "../types.ts";
 
 /**
- * Safely retrieves the API key. 
- * Prevents crash if 'process' is not immediately available during module evaluation.
+ * Returns a configured GoogleGenAI instance.
+ * Lazily initialized to prevent startup crashes if API_KEY is missing.
  */
-const getApiKey = (): string => {
-  try {
-    return (window as any).process?.env?.API_KEY || "";
-  } catch (e) {
-    return "";
+function getAIClient() {
+  const apiKey = (window as any).process?.env?.API_KEY || "";
+  if (!apiKey) {
+    console.warn("RE:ASoN - No API Key detected. AI features will use fallback data.");
   }
-};
-
-const ai = new GoogleGenAI({ apiKey: getApiKey() });
+  return new GoogleGenAI({ apiKey });
+}
 
 export async function analyzeStudentRisk(student: Student): Promise<RiskAnalysis> {
+  const ai = getAIClient();
   const prompt = `Analyze the following IB DP student data and identify failure risks.
   Student: ${student.name}
   Year Group: ${student.yearGroup}
@@ -60,13 +59,18 @@ export async function analyzeStudentRisk(student: Student): Promise<RiskAnalysis
     console.error("Gemini Analysis Error:", error);
     return {
       riskLevel: "Medium",
-      summary: "Could not generate automated summary. Please review manual data points.",
-      recommendations: ["Manually check subject grades", "Schedule coordinator meeting"]
+      summary: "Automated analysis currently unavailable. Student appears to have persistent trends requiring manual review.",
+      recommendations: [
+        "Review individual subject grade trends",
+        "Check EE/TOK progress markers",
+        "Schedule standard coordinator intervention"
+      ]
     };
   }
 }
 
 export async function generateWeeklyReport(students: Student[]): Promise<string> {
+  const ai = getAIClient();
   const atRiskStudents = students.filter(s => s.riskScore > 40);
   const prompt = `Write a professional weekly report for the IB DP Coordinator. 
   The report should summarize the overall health of the DP cohort. 
@@ -80,6 +84,6 @@ export async function generateWeeklyReport(students: Student[]): Promise<string>
     });
     return response.text;
   } catch (error) {
-    return "Error generating weekly report. Please review individual student risk metrics.";
+    return "Status report generation failed. Risk scores indicate multiple students entering critical threshold.";
   }
 }

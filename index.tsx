@@ -3,27 +3,32 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 
-console.log("%cRE:ASoN System: Starting Initialization Protocol...", "color: #3b82f6; font-weight: 900; font-size: 14px;");
+console.log("%cRE:ASoN: System Initializing...", "color: #3b82f6; font-weight: bold;");
 
-const bootApp = () => {
-  const rootElement = document.getElementById('root');
-  if (!rootElement) {
-    console.error("Critical: Root element 'root' not found in DOM.");
+const mount = () => {
+  const container = document.getElementById('root');
+  if (!container) {
+    console.error("RE:ASoN: Failed to find mount point '#root'");
     return;
   }
 
   try {
-    const root = ReactDOM.createRoot(rootElement);
+    const root = ReactDOM.createRoot(container);
     root.render(
       <React.StrictMode>
         <App />
       </React.StrictMode>
     );
-    console.log("%cRE:ASoN System: Successfully rendered UI tree.", "color: #10b981; font-weight: 900;");
-  } catch (err) {
-    console.error("Critical: React render cycle failed.", err);
+    console.log("%cRE:ASoN: UI Mounted Successfully.", "color: #10b981; font-weight: bold;");
+  } catch (error) {
+    console.error("RE:ASoN: Critical UI Render Error:", error);
+    container.innerHTML = `<div style="padding:20px; color:red;">React failed to render. Check console for details.</div>`;
   }
 };
 
-// Use a small delay to ensure Babel-transpiled components are fully evaluated
-setTimeout(bootApp, 10);
+// Execute mount after a short tick to ensure DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', mount);
+} else {
+  mount();
+}

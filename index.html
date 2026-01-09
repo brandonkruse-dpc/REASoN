@@ -9,9 +9,14 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   
+  <!-- Babel for TSX transpilation -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
+  <!-- Polyfill for Import Maps support across older browsers and GitHub Pages -->
+  <script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+
   <script>
+    // Polyfill environment for libraries expecting Node.js-like globals
     window.process = { 
       env: { 
         NODE_ENV: 'production',
@@ -21,24 +26,26 @@
       browser: true
     };
     
+    // Diagnostic error handler to catch boot failures
     window.onerror = function(message, source, lineno, colno, error) {
       console.error("Diagnostic Error:", message);
       const root = document.getElementById('root');
-      if (root && (root.innerText.includes('Initializing') || root.innerHTML === '')) {
+      if (root && (root.innerText.includes('Booting') || root.innerHTML === '')) {
         root.innerHTML = `
           <div style="padding: 40px; max-width: 600px; margin: 40px auto; background: #fff; border-radius: 24px; font-family: 'Inter', sans-serif; border: 1px solid #e2e8f0; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);">
-            <h3 style="font-weight: 900; color: #1e293b; margin-bottom: 12px; font-size: 20px;">System Error</h3>
-            <p style="color: #64748b; font-size: 14px; line-height: 1.6;">The application encountered a conflict during startup. This is often due to browser module caching.</p>
+            <h3 style="font-weight: 900; color: #1e293b; margin-bottom: 12px; font-size: 20px;">System Initialization Error</h3>
+            <p style="color: #64748b; font-size: 14px; line-height: 1.6;">The application encountered a conflict during startup. This is often caused by multiple versions of React being loaded or a module resolution error.</p>
             <div style="background: #f8fafc; padding: 16px; border-radius: 12px; margin-top: 20px;">
               <code style="font-size: 12px; color: #ef4444; word-break: break-all;">${message}</code>
             </div>
-            <button onclick="location.reload()" style="margin-top: 24px; background: #3b82f6; color: #fff; padding: 10px 20px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer;">Reload Application</button>
+            <button onclick="location.reload()" style="margin-top: 24px; background: #3b82f6; color: #fff; padding: 10px 20px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; width: 100%;">Retry Load</button>
           </div>
         `;
       }
     };
   </script>
 
+  <!-- UNIFIED IMPORT MAP: Strictly use 19.0.0 for everything to prevent conflicts -->
   <script type="importmap">
 {
   "imports": {
