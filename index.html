@@ -9,37 +9,41 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   
+  <!-- Babel Standalone for TSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
-
+  
+  <!-- System Configuration -->
   <script>
     window.process = { 
       env: { 
         NODE_ENV: 'production',
         API_KEY: '' 
       },
-      cwd: () => '/',
       browser: true
     };
-    
+
+    // Diagnostic console output
+    console.log("RE:ASoN: System Pre-flight checks initiated...");
+
     window.onerror = function(message, source, lineno, colno, error) {
-      console.error("System Error:", message);
+      console.error("Critical System Failure:", message);
       const root = document.getElementById('root');
-      if (root && (root.innerText.includes('Booting') || root.innerHTML === '')) {
+      if (root && (root.innerHTML.includes('Booting') || root.innerHTML === '')) {
         root.innerHTML = `
-          <div style="padding: 40px; max-width: 600px; margin: 40px auto; background: #fff; border-radius: 24px; font-family: 'Inter', sans-serif; border: 1px solid #e2e8f0; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);">
-            <h3 style="font-weight: 900; color: #1e293b; margin-bottom: 12px; font-size: 20px;">RE:ASoN System Alert</h3>
-            <p style="color: #64748b; font-size: 14px; line-height: 1.6;">A module resolution conflict occurred. This usually happens when multiple versions of React are cached by the browser.</p>
-            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; margin-top: 20px;">
-              <code style="font-size: 11px; color: #ef4444; word-break: break-all;">${message}</code>
+          <div style="padding: 40px; max-width: 500px; margin: 60px auto; background: white; border-radius: 32px; font-family: 'Inter', sans-serif; box-shadow: 0 30px 60px -12px rgba(0,0,0,0.25); border: 1px solid #e2e8f0;">
+            <div style="width: 48px; height: 48px; background: #fee2e2; color: #ef4444; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </div>
-            <button onclick="location.reload()" style="margin-top: 24px; background: #3b82f6; color: #fff; padding: 12px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; width: 100%; text-transform: uppercase; letter-spacing: 0.05em;">Reset Engine</button>
+            <h3 style="font-weight: 900; color: #0f172a; font-size: 20px; letter-spacing: -0.02em;">Initialization Blocked</h3>
+            <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin-top: 8px;">The engine failed to resolve dependencies. This is usually caused by an unstable internet connection or a browser cache conflict.</p>
+            <button onclick="location.reload()" style="margin-top: 24px; width: 100%; background: #2563eb; color: white; padding: 14px; border-radius: 14px; border: none; font-weight: 800; cursor: pointer; transition: transform 0.1s active:scale-95;">RETRY BOOT SEQUENCE</button>
           </div>
         `;
       }
     };
   </script>
 
+  <!-- STRICT IMPORT MAP: Unified to exactly 19.0.0 -->
   <script type="importmap">
 {
   "imports": {
@@ -57,13 +61,22 @@
 </head>
 <body class="bg-slate-50 text-slate-900 overflow-x-hidden">
   <div id="root">
+    <!-- Sophisticated Boot Loader -->
     <div class="flex items-center justify-center min-h-screen">
-      <div class="flex flex-col items-center gap-4">
-        <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p class="text-slate-400 font-black uppercase tracking-[0.2em] text-[10px]">RE:ASoN Engine Booting</p>
+      <div class="flex flex-col items-center gap-6">
+        <div class="relative">
+          <div class="w-16 h-16 border-[6px] border-slate-200 rounded-full"></div>
+          <div class="w-16 h-16 border-[6px] border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+        </div>
+        <div class="text-center">
+          <p class="text-slate-900 font-black uppercase tracking-[0.3em] text-xs">RE:ASoN</p>
+          <p class="text-slate-400 font-bold uppercase tracking-widest text-[9px] mt-1">Establishing Data Secure-Link</p>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- Loading index.tsx as a Babel module -->
   <script 
     type="text/babel" 
     data-type="module" 
