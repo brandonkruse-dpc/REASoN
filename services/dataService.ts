@@ -1,39 +1,24 @@
 
-import { Student, YearGroup, RiskWeights, SubjectGrade, Assignment } from '../types';
+import { Student, YearGroup, RiskWeights, SubjectGrade, Assignment } from '../types.ts';
 
-/**
- * Calculates a weighted risk score (0-100).
- * This score is purely used for alerts and trend analysis.
- * It is heavily influenced by the Coordinator's specific weight preferences.
- */
 export function calculateRiskScore(student: Student, weights: RiskWeights): number {
   let score = 0;
-
-  // 1. Attendance Risk (Weighted)
   const attendanceVal = student.attendance || 100;
-  const attendanceDeficit = Math.max(0, 95 - attendanceVal); // Goal is 95%
+  const attendanceDeficit = Math.max(0, 95 - attendanceVal); 
   score += (attendanceDeficit * weights.attendanceWeight) * 5;
 
-  // 2. Academic Risk Components (Weighted)
   let missingCount = 0;
   if (student.grades && Array.isArray(student.grades)) {
     student.grades.forEach(grade => {
       const mark = Number(grade.currentMark);
-      
-      // Low Grade Risk: Grades below 4 are failing/at-risk in DP
       if (mark < 4 && mark > 0) {
         score += ((4 - mark) * 15 * weights.lowGradeWeight);
       }
-      
-      // Negative Trend Risk
       if (grade.trend === 'down') {
         score += (10 * weights.trendWeight);
       }
-      
-      // Assignment & IA specific risks
       grade.assignments?.forEach(a => {
         if (a.status === 'Missing') missingCount++;
-        // Low IA performance risk
         if (a.type === 'IA' && a.maxScore > 0 && (a.score / a.maxScore) < 0.4) {
           score += (20 * weights.iaRiskWeight);
         }
@@ -41,10 +26,8 @@ export function calculateRiskScore(student: Student, weights: RiskWeights): numb
     });
   }
   
-  // Missing Work Risk
   score += (missingCount * 12 * weights.missingAssignmentWeight);
 
-  // 3. Core Component Risk (EE, TOK, CAS)
   if (student.core) {
     if (student.core.ee === 'At Risk') score += (35 * weights.coreRiskWeight);
     if (student.core.tok === 'At Risk') score += (30 * weights.coreRiskWeight);
@@ -54,24 +37,13 @@ export function calculateRiskScore(student: Student, weights: RiskWeights): numb
   return Math.min(100, Math.round(score));
 }
 
-/**
- * Calculates pure IB Points (1-45).
- * Strictly based on the aggregate of summative assessment scores (1-7) 
- * across the subjects plus the 0-3 core points.
- * THIS IS NOT AFFECTED BY RISK WEIGHTS.
- */
 export function calculateTotalPoints(student: Student): number {
-  // Aggregate the 1-7 summative marks from all subject grades
   const summativeAcademicPoints = student.grades.reduce((acc, g) => {
     const mark = Number(g.currentMark) || 0;
-    // Ensure we only count valid IB grades (1-7)
     return acc + (mark >= 1 && mark <= 7 ? mark : 0);
   }, 0);
 
-  // Add the 0-3 core points from TOK/EE matrix
   const corePoints = student.core?.points || 0;
-  
-  // Total IB points (capped at 45 as per standard DP regulations)
   return Math.min(45, summativeAcademicPoints + corePoints);
 }
 
@@ -117,7 +89,6 @@ export async function parseManageBacCSV(fileContent: string): Promise<Student[]>
       if (cols.length < 2) continue; 
 
       const [id, name, yearGroup, attendance, lessonsMissed, gradesJson, coreJson] = cols;
-      
       const cleanAttendance = parseFloat(String(attendance || '100').replace(/[^0-9.]/g, '')) || 100;
       const cleanLessons = parseInt(String(lessonsMissed || '0').replace(/[^0-9]/g, '')) || 0;
 
@@ -152,9 +123,7 @@ export async function parseManageBacCSV(fileContent: string): Promise<Student[]>
       };
       
       student.totalPoints = calculateTotalPoints(student);
-      // Risk score is temporary until weights are applied in the UI
       student.riskScore = 0; 
-      
       students.push(student);
     } catch (err) { console.error(`Error row ${i}:`, err); }
   }

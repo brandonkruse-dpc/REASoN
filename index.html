@@ -7,7 +7,11 @@
   <title>RE:ASoN - Risk Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    // Critical: Shim process for the browser environment to prevent GoogleGenAI crashes
+    window.process = window.process || { env: { API_KEY: "" } };
+  </script>
   <style>
     body { font-family: 'Inter', sans-serif; }
     .glass-morphism {
@@ -19,16 +23,19 @@
 <script type="importmap">
 {
   "imports": {
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "recharts": "https://esm.sh/recharts@3.6.0",
+    "@google/genai": "https://esm.sh/@google/genai@1.35.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
 </head>
 <body class="bg-slate-50 text-slate-900">
   <div id="root"></div>
+  <!-- Explicitly load the entry point -->
+  <script type="module" src="index.tsx"></script>
 </body>
 </html>

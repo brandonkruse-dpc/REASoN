@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Student, YearGroup, RiskWeights, RiskAnalysis } from './types';
-import { MOCK_STUDENTS, DEFAULT_WEIGHTS } from './constants';
-import { calculateRiskScore, parseManageBacCSV, calculateTotalPoints } from './services/dataService';
-import { analyzeStudentRisk } from './services/geminiService';
-import { generateWeeklyPDF } from './services/reportService';
-import RiskBadge from './components/RiskBadge';
-import StudentTrendChart from './components/StudentTrendChart';
-import SettingsPanel from './components/SettingsPanel';
+import { Student, YearGroup, RiskWeights } from './types.ts';
+import { MOCK_STUDENTS, DEFAULT_WEIGHTS } from './constants.ts';
+import { calculateRiskScore, parseManageBacCSV, calculateTotalPoints } from './services/dataService.ts';
+import { generateWeeklyPDF } from './services/reportService.ts';
+import RiskBadge from './components/RiskBadge.tsx';
+import StudentTrendChart from './components/StudentTrendChart.tsx';
+import SettingsPanel from './components/SettingsPanel.tsx';
 
 const App: React.FC = () => {
   const [students, setStudents] = useState<Student[]>(MOCK_STUDENTS);
@@ -16,11 +15,9 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [coordinatorEmail, setCoordinatorEmail] = useState('dp.coordinator@school.edu');
-  const [showRawData, setShowRawData] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Close profile on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setSelectedStudent(null);
@@ -29,23 +26,18 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Re-calculate ONLY Risk Scores when weights change. 
-  // IB Points remain pure summative results.
   useEffect(() => {
     setStudents(prev => prev.map(s => ({
       ...s,
       riskScore: calculateRiskScore(s, weights),
-      // Total points are recalculable but independent of weights
       totalPoints: calculateTotalPoints(s) 
     })));
   }, [weights]);
 
-  // Filter students based on current tab (DP1/DP2/All)
   const cohortStudents = useMemo(() => {
     return students.filter(s => view === 'all' || s.yearGroup === view);
   }, [students, view]);
 
-  // Filter students for the registry table based on search query
   const filteredStudents = useMemo(() => {
     return cohortStudents
       .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || String(s.id).includes(searchQuery))
@@ -212,7 +204,6 @@ const App: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredStudents.map(s => {
-                    // Weighted logic for specific flag intensity
                     const academicRiskIntensity = s.grades.filter(g => Number(g.currentMark) < 4).length * weights.lowGradeWeight;
                     const attendanceRiskIntensity = (s.attendance < 90 ? 1 : 0) * weights.attendanceWeight;
                     const coreRiskIntensity = (s.core.ee === 'At Risk' || s.core.tok === 'At Risk' || s.core.cas === 'Behind' ? 1 : 0) * weights.coreRiskWeight;
@@ -234,7 +225,6 @@ const App: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 text-center">
                           <div className="flex justify-center gap-1.5">
-                            {/* Flags sized/colored by risk intensity */}
                             {academicRiskIntensity > 0 && (
                               <div className={`rounded-full shadow-sm bg-red-500`} style={{ width: `${8 + academicRiskIntensity * 20}px`, height: `${8 + academicRiskIntensity * 20}px` }} title="Weighted Academic Fail Risk"></div>
                             )}
