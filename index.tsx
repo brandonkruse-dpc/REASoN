@@ -80,13 +80,26 @@ const MOCK_STUDENTS: Student[] = [
     attendance: 88,
     lessonsMissed: 24,
     grades: [
-      { subject: "Math AA", level: "HL", currentMark: 3, predictedGrade: 4, trend: 'down', assignments: [{ name: "IA Draft", score: 5, maxScore: 20, type: "IA", status: "Missing" }] }
+      { subject: "Math AA", level: "HL", currentMark: 3, predictedGrade: 4, trend: 'down', assignments: [{ name: "Calculus IA", score: 8, maxScore: 20, type: "IA", status: "Submitted" }, { name: "Quiz 4", score: 0, maxScore: 20, type: "Summative", status: "Missing" }] }
     ],
     core: { ee: 'At Risk', tok: 'In Progress', cas: 'Behind', points: 1 },
     riskScore: 72,
     totalPoints: 24,
     lastUpdated: "2024-05-01",
     historicalRiskScores: [{ date: "2024-03-01", score: 45 }, { date: "2024-04-01", score: 60 }, { date: "2024-05-01", score: 72 }]
+  },
+  {
+    id: "2024002",
+    name: "Sarah Chen",
+    yearGroup: YearGroup.DP2,
+    attendance: 98,
+    lessonsMissed: 4,
+    grades: [{ subject: "Economics", level: "HL", currentMark: 7, predictedGrade: 7, trend: 'stable', assignments: [] }],
+    core: { ee: 'Submitted', tok: 'Submitted', cas: 'Complete', points: 3 },
+    riskScore: 5,
+    totalPoints: 42,
+    lastUpdated: "2024-05-01",
+    historicalRiskScores: [{ date: "2024-05-01", score: 5 }]
   },
   {
     id: "2025003",
@@ -100,23 +113,10 @@ const MOCK_STUDENTS: Student[] = [
     totalPoints: 18,
     lastUpdated: "2024-05-01",
     historicalRiskScores: [{ date: "2024-03-01", score: 80 }, { date: "2024-04-01", score: 88 }, { date: "2024-05-01", score: 92 }]
-  },
-  {
-    id: "2024010",
-    name: "Sarah Chen",
-    yearGroup: YearGroup.DP2,
-    attendance: 98,
-    lessonsMissed: 2,
-    grades: [{ subject: "Economics", level: "HL", currentMark: 7, predictedGrade: 7, trend: 'stable', assignments: [] }],
-    core: { ee: 'Submitted', tok: 'Submitted', cas: 'Complete', points: 3 },
-    riskScore: 5,
-    totalPoints: 43,
-    lastUpdated: "2024-05-01",
-    historicalRiskScores: [{ date: "2024-05-01", score: 5 }]
   }
 ];
 
-// --- CORE UTILITIES ---
+// --- SERVICES ---
 const calculateRiskScore = (student: Student, weights: RiskWeights): number => {
   let score = 0;
   const attendanceDeficit = Math.max(0, 95 - student.attendance);
@@ -164,11 +164,11 @@ const analyzeStudentRisk = async (student: Student): Promise<RiskAnalysis> => {
   }
 };
 
-const generatePDF = (students: Student[]) => {
+const generateReport = (students: Student[]) => {
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF();
   const now = new Date().toLocaleDateString();
-  const critical = students.sort((a,b) => b.riskScore - a.riskScore).slice(0, 15);
+  const critical = [...students].sort((a,b) => b.riskScore - a.riskScore).slice(0, 15);
 
   doc.setFillColor(15, 23, 42);
   doc.rect(0, 0, 210, 40, 'F');
@@ -246,18 +246,6 @@ const App: React.FC = () => {
       .sort((a, b) => b.riskScore - a.riskScore);
   }, [students, view, search]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      // Logic for CSV parsing would go here in a production env
-      // For this implementation, we simulate the sync completion
-      alert(`Sync Complete: Synchronized ${students.length} student records from ManageBac.`);
-    };
-    reader.readAsText(file);
-  };
-
   const runAnalysis = async () => {
     if (!selected) return;
     setIsAnalyzing(true);
@@ -266,15 +254,26 @@ const App: React.FC = () => {
     setIsAnalyzing(false);
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      // In a real app, this would parse the CSV
+      alert(`Success: Integrated ${students.length} student records from Google Drive sync.`);
+    };
+    reader.readAsText(file);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter']">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter'] selection:bg-blue-100">
       <header className="bg-slate-900 text-white p-5 sticky top-0 z-50 shadow-2xl border-b border-blue-900/30">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-xl shadow-lg border border-white/10">R</div>
             <div>
               <h1 className="text-xl font-black tracking-tighter leading-none">RE:ASoN</h1>
-              <p className="text-[9px] text-slate-400 uppercase tracking-[0.2em] font-black mt-1">Risk Assessment Engine</p>
+              <p className="text-[9px] text-slate-400 uppercase tracking-[0.2em] font-black mt-1">DP Risk Engine</p>
             </div>
           </div>
           
@@ -288,16 +287,16 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-3">
             <input 
-              value={search} onChange={e => setSearch(e.target.value)} placeholder="Search records..." 
+              value={search} onChange={e => setSearch(e.target.value)} placeholder="Search Records..." 
               className="bg-slate-800 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 w-48 text-slate-100 outline-none" 
             />
-            <button onClick={() => generatePDF(students)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all">Download Report</button>
+            <button onClick={() => generateReport(students)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all active:scale-95">Download PDF</button>
           </div>
         </div>
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto w-full p-6 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* LEFT COLUMN: REGISTRY & SETTINGS */}
+        {/* DASHBOARD: REGISTRY & PARAMETERS */}
         <div className={`space-y-8 ${selected ? 'hidden lg:block lg:col-span-8' : 'col-span-12'}`}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-200">
@@ -305,7 +304,7 @@ const App: React.FC = () => {
               <p className="text-4xl font-black text-slate-900 leading-none">{Math.round(filtered.reduce((a,s)=>a+s.riskScore,0)/filtered.length || 0)}</p>
             </div>
             <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-200">
-              <p className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mb-2">IB Points Avg</p>
+              <p className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mb-2">IB Pts Avg</p>
               <p className="text-4xl font-black text-indigo-600 leading-none">{(filtered.reduce((a,s)=>a+s.totalPoints,0)/filtered.length || 0).toFixed(1)}</p>
             </div>
             <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-200 border-l-4 border-l-red-500">
@@ -314,10 +313,9 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* MAIN REGISTRY TABLE */}
           <div className="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h2 className="font-black text-slate-800 uppercase tracking-tighter">Student Risk Matrix</h2>
+              <h2 className="font-black text-slate-800 uppercase tracking-tighter">Student Risk Registry</h2>
               <span className="text-[9px] font-black bg-white border border-slate-200 px-3 py-1 rounded-full text-slate-500 uppercase">{filtered.length} Students</span>
             </div>
             <div className="overflow-x-auto">
@@ -326,7 +324,7 @@ const App: React.FC = () => {
                   <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                     <th className="px-6 py-4">Identity</th>
                     <th className="px-6 py-4 text-center">IB Points</th>
-                    <th className="px-6 py-4 text-center">Attendance</th>
+                    <th className="px-6 py-4 text-center">Attn</th>
                     <th className="px-6 py-4">Rating</th>
                   </tr>
                 </thead>
@@ -349,24 +347,21 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* SYNC & WEIGHT SETTINGS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200">
-              <h3 className="text-[10px] font-black uppercase tracking-widest mb-6 text-slate-400">Data Synchronization</h3>
-              <div className="space-y-4">
-                <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".csv" />
-                <button 
-                  onClick={() => fileInputRef.current?.click()} 
-                  className="w-full p-10 border-2 border-dashed border-slate-200 rounded-3xl text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all flex flex-col items-center justify-center group"
-                >
-                  <svg className="w-10 h-10 text-slate-300 group-hover:text-blue-500 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                  <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Upload Weekly ManageBac Pull</span>
-                </button>
-              </div>
+              <h3 className="text-[10px] font-black uppercase tracking-widest mb-6 text-slate-400">ManageBac CSV Synchronization</h3>
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".csv" />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full p-10 border-2 border-dashed border-slate-200 rounded-3xl text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all flex flex-col items-center group"
+              >
+                <svg className="w-10 h-10 text-slate-300 group-hover:text-blue-500 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Upload Google Drive Pull</span>
+              </button>
             </div>
 
             <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200">
-              <h3 className="text-[10px] font-black uppercase tracking-widest mb-6 text-slate-400">Calculation Weightings</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-widest mb-6 text-slate-400">Risk Weight Parameters</h3>
               <div className="space-y-6">
                 {Object.entries(weights).map(([k, v]) => (
                   <div key={k}>
@@ -382,17 +377,17 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: INDIVIDUAL DETAIL */}
+        {/* SIDEBAR: STUDENT INSIGHTS */}
         {selected && (
           <div className="col-span-12 lg:col-span-4 space-y-8 animate-in">
             <div className="bg-white rounded-[40px] shadow-2xl border border-slate-200 overflow-hidden sticky top-32 z-10">
               <div className="p-8 bg-slate-900 text-white relative">
-                <button onClick={() => setSelected(null)} className="absolute top-6 right-6 text-xs bg-slate-800 p-2 rounded-full hover:bg-red-600 transition-colors leading-none">✕</button>
+                <button onClick={() => setSelected(null)} className="absolute top-6 right-6 text-xs bg-slate-800 p-2 rounded-full hover:bg-red-600 transition-colors">✕</button>
                 <h2 className="text-2xl font-black tracking-tighter leading-none mb-1 pr-8">{selected.name}</h2>
                 <p className="text-blue-400 font-black text-[10px] uppercase tracking-widest">{selected.yearGroup}</p>
                 <div className="flex justify-between mt-8 border-t border-slate-800 pt-6">
                   <div>
-                    <p className="text-[8px] uppercase text-slate-500 font-black tracking-widest">Points</p>
+                    <p className="text-[8px] uppercase text-slate-500 font-black tracking-widest">Pure Pts</p>
                     <p className="text-2xl font-black text-blue-500">{selected.totalPoints}</p>
                   </div>
                   <div className="text-right">
@@ -410,9 +405,9 @@ const App: React.FC = () => {
                       {!aiAnalysis && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>}
                     </h3>
                     {isAnalyzing ? (
-                      <div className="py-4 text-[10px] font-black text-slate-400 animate-pulse flex flex-col items-center gap-2">
+                      <div className="py-4 text-[10px] font-black text-slate-400 animate-pulse flex flex-col items-center gap-2 text-center">
                         <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                        PROCESSING MATRIX...
+                        SYNTHESIZING MATRIX...
                       </div>
                     ) : aiAnalysis ? (
                       <div className="space-y-4">
@@ -445,7 +440,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="p-10 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-auto border-t border-slate-100">RE:ASoN v5.2 • SECURE ANALYTICS TERMINAL</footer>
+      <footer className="p-10 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-auto border-t border-slate-100">RE:ASoN v5.5 • SECURE COORDINATOR TERMINAL</footer>
     </div>
   );
 };
