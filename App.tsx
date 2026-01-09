@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Student, YearGroup, RiskWeights } from './types.ts';
+import { Student, YearGroup, RiskWeights, RiskAnalysis } from './types.ts';
 import { MOCK_STUDENTS, DEFAULT_WEIGHTS } from './constants.ts';
 import { calculateRiskScore, parseManageBacCSV, calculateTotalPoints } from './services/dataService.ts';
 import { generateWeeklyPDF } from './services/reportService.ts';
+import { analyzeStudentRisk } from './services/geminiService.ts';
 import RiskBadge from './components/RiskBadge.tsx';
 import StudentTrendChart from './components/StudentTrendChart.tsx';
 import SettingsPanel from './components/SettingsPanel.tsx';
@@ -16,6 +17,9 @@ const App: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [coordinatorEmail, setCoordinatorEmail] = useState('dp.coordinator@school.edu');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<RiskAnalysis | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -34,6 +38,11 @@ const App: React.FC = () => {
     })));
   }, [weights]);
 
+  // Clear AI analysis when student changes
+  useEffect(() => {
+    setAiAnalysis(null);
+  }, [selectedStudent?.id]);
+
   const cohortStudents = useMemo(() => {
     return students.filter(s => view === 'all' || s.yearGroup === view);
   }, [students, view]);
@@ -44,8 +53,17 @@ const App: React.FC = () => {
       .sort((a, b) => b.riskScore - a.riskScore);
   }, [cohortStudents, searchQuery]);
 
-  const handleSelectStudent = (student: Student) => {
-    setSelectedStudent(student);
+  const handleRunAnalysis = async () => {
+    if (!selectedStudent) return;
+    setIsAnalyzing(true);
+    try {
+      const result = await analyzeStudentRisk(selectedStudent);
+      setAiAnalysis(result);
+    } catch (error) {
+      console.error("AI Analysis failed", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleDownloadReport = async () => {
@@ -195,59 +213,41 @@ const App: React.FC = () => {
                 <thead>
                   <tr className="bg-slate-50/50 text-slate-500 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
                     <th className="px-6 py-4">Student Identity</th>
-                    <th className="px-6 py-4 text-center" title="Pure Aggregate of Summative Grades (1-7) + Core Points">IB Points (Pure)</th>
+                    <th className="px-6 py-4 text-center">IB Points (Pure)</th>
                     <th className="px-6 py-4 text-center">Attn %</th>
-                    <th className="px-6 py-4 text-center">Weighted Failure Flags</th>
-                    <th className="px-6 py-4">Weighted Risk Rating</th>
+                    <th className="px-6 py-4 text-center">Failure Flags</th>
+                    <th className="px-6 py-4">Risk Rating</th>
                     <th className="px-6 py-4 text-right">Ops</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredStudents.map(s => {
-                    const academicRiskIntensity = s.grades.filter(g => Number(g.currentMark) < 4).length * weights.lowGradeWeight;
-                    const attendanceRiskIntensity = (s.attendance < 90 ? 1 : 0) * weights.attendanceWeight;
-                    const coreRiskIntensity = (s.core.ee === 'At Risk' || s.core.tok === 'At Risk' || s.core.cas === 'Behind' ? 1 : 0) * weights.coreRiskWeight;
-                    
-                    return (
-                      <tr key={s.id} onClick={() => handleSelectStudent(s)} className={`cursor-pointer group transition-all duration-200 ${selectedStudent?.id === s.id ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
-                        <td className="px-6 py-4">
-                          <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{s.name}</div>
-                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{s.yearGroup} • {s.id}</div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className={`inline-block px-4 py-1.5 rounded-xl font-black text-lg ${s.totalPoints < 24 ? 'text-red-600 bg-red-50' : 'text-blue-700 bg-blue-50'}`}>
-                            {s.totalPoints}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className={`font-black ${s.attendance < 90 ? 'text-red-500' : 'text-slate-700'}`}>{s.attendance}%</div>
-                          <div className="text-[10px] text-slate-400 font-bold">-{s.lessonsMissed}H</div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex justify-center gap-1.5">
-                            {academicRiskIntensity > 0 && (
-                              <div className={`rounded-full shadow-sm bg-red-500`} style={{ width: `${8 + academicRiskIntensity * 20}px`, height: `${8 + academicRiskIntensity * 20}px` }} title="Weighted Academic Fail Risk"></div>
-                            )}
-                            {attendanceRiskIntensity > 0 && (
-                              <div className={`rounded-full shadow-sm bg-orange-400`} style={{ width: `${8 + attendanceRiskIntensity * 20}px`, height: `${8 + attendanceRiskIntensity * 20}px` }} title="Weighted Attendance Risk"></div>
-                            )}
-                            {coreRiskIntensity > 0 && (
-                              <div className={`rounded-full shadow-sm bg-purple-500`} style={{ width: `${8 + coreRiskIntensity * 20}px`, height: `${8 + coreRiskIntensity * 20}px` }} title="Weighted Core Component Risk"></div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4"><RiskBadge score={s.riskScore} /></td>
-                        <td className="px-6 py-4 text-right">
-                          <svg className="w-5 h-5 text-slate-300 group-hover:text-blue-500 ml-auto transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {filteredStudents.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-20 text-center text-slate-400 font-black uppercase tracking-widest opacity-30">No matches found</td>
+                  {filteredStudents.map(s => (
+                    <tr key={s.id} onClick={() => setSelectedStudent(s)} className={`cursor-pointer group transition-all duration-200 ${selectedStudent?.id === s.id ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
+                      <td className="px-6 py-4">
+                        <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{s.name}</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{s.yearGroup} • {s.id}</div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className={`inline-block px-4 py-1.5 rounded-xl font-black text-lg ${s.totalPoints < 24 ? 'text-red-600 bg-red-50' : 'text-blue-700 bg-blue-50'}`}>
+                          {s.totalPoints}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className={`font-black ${s.attendance < 90 ? 'text-red-500' : 'text-slate-700'}`}>{s.attendance}%</div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center gap-1.5">
+                          {s.grades.filter(g => Number(g.currentMark) < 4).length > 0 && <div className="w-2 h-2 rounded-full bg-red-500" title="Academic Alert"></div>}
+                          {s.attendance < 90 && <div className="w-2 h-2 rounded-full bg-orange-500" title="Attendance Alert"></div>}
+                          {(s.core.ee === 'At Risk' || s.core.tok === 'At Risk') && <div className="w-2 h-2 rounded-full bg-purple-500" title="Core Component Alert"></div>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4"><RiskBadge score={s.riskScore} /></td>
+                      <td className="px-6 py-4 text-right">
+                        <svg className="w-5 h-5 text-slate-300 group-hover:text-blue-500 ml-auto transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"></path></svg>
+                      </td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -270,31 +270,72 @@ const App: React.FC = () => {
                 </div>
                 <div className="mt-8 flex items-center justify-between border-t border-slate-800 pt-6">
                   <div className="text-center">
-                    <p className="text-[9px] uppercase font-black text-slate-500 tracking-widest">Summative Pts (Pure)</p>
+                    <p className="text-[9px] uppercase font-black text-slate-500 tracking-widest">Summative Pts</p>
                     <p className="text-4xl font-black text-blue-500">{selectedStudent.totalPoints}</p>
                   </div>
                   <div className="text-center border-l border-slate-800 pl-8">
                     <p className="text-[9px] uppercase font-black text-slate-500 tracking-widest">Attendance</p>
                     <p className={`text-2xl font-black ${selectedStudent.attendance < 90 ? 'text-red-500' : 'text-white'}`}>{selectedStudent.attendance}%</p>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">-{selectedStudent.lessonsMissed} Lessons</p>
                   </div>
                 </div>
               </div>
-              <div className="p-6 max-h-[60vh] overflow-y-auto space-y-8">
+              
+              <div className="p-6 max-h-[65vh] overflow-y-auto space-y-8">
+                {/* RESTORED GEMINI FEATURE */}
+                <div className="p-1 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg overflow-hidden">
+                  <div className="bg-white p-5 rounded-[22px]">
+                    <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest mb-3 flex items-center justify-between">
+                      <span>RE:ASoN AI Insights</span>
+                      {!aiAnalysis && !isAnalyzing && <span className="text-indigo-500 animate-pulse font-bold">New Alert!</span>}
+                    </h3>
+                    
+                    {isAnalyzing ? (
+                      <div className="py-8 flex flex-col items-center gap-3">
+                        <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Synthesizing Data...</p>
+                      </div>
+                    ) : aiAnalysis ? (
+                      <div className="space-y-4">
+                        <div className={`p-3 rounded-xl border flex items-center gap-3 ${aiAnalysis.riskLevel === 'Critical' ? 'bg-red-50 border-red-100 text-red-700' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
+                          <div className={`w-2 h-2 rounded-full ${aiAnalysis.riskLevel === 'Critical' ? 'bg-red-500' : 'bg-blue-500'}`}></div>
+                          <span className="text-xs font-black uppercase tracking-widest">Rating: {aiAnalysis.riskLevel}</span>
+                        </div>
+                        <p className="text-sm text-slate-700 leading-relaxed font-medium italic">"{aiAnalysis.summary}"</p>
+                        <div className="space-y-2">
+                          {aiAnalysis.recommendations.map((rec, i) => (
+                            <div key={i} className="flex gap-2 items-start text-[11px] font-bold text-slate-600">
+                              <div className="w-1 h-1 rounded-full bg-indigo-400 mt-1.5 shrink-0"></div>
+                              <span>{rec}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <button onClick={handleRunAnalysis} className="text-[9px] font-black uppercase text-indigo-600 hover:text-indigo-800 transition-colors">Refresh Insight</button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={handleRunAnalysis}
+                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-md active:scale-95"
+                      >
+                        Generate Risk Synthesis
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>
-                    Summative Grades (1-7 Scale)
+                    Subject Breakdown
                   </h3>
                   <div className="space-y-3">
                     {selectedStudent.grades.map((g, i) => (
-                      <div key={i} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
+                      <div key={i} className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
                         <div className="flex justify-between items-center mb-1">
-                          <span className="font-black text-slate-800 text-sm tracking-tight">{g.subject} <span className="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded ml-1 font-bold">{g.level}</span></span>
+                          <span className="font-black text-slate-800 text-sm">{g.subject} <span className="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded ml-1">{g.level}</span></span>
                           <span className={`text-xl font-black ${Number(g.currentMark) < 4 ? 'text-red-600' : 'text-blue-600'}`}>{g.currentMark}</span>
                         </div>
                         <div className="flex justify-between text-[10px] font-bold">
-                          <span className="text-slate-400">IB Predicted: {g.predictedGrade}</span>
+                          <span className="text-slate-400">Predicted: {g.predictedGrade}</span>
                           <span className={g.trend === 'up' ? 'text-emerald-500' : g.trend === 'down' ? 'text-red-500' : 'text-slate-400'}>
                             {g.trend.toUpperCase()} TREND
                           </span>
@@ -303,16 +344,11 @@ const App: React.FC = () => {
                     ))}
                   </div>
                 </div>
+
                 <div className="pt-4 border-t border-slate-100">
-                  <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest mb-4">Weighted Risk History</h3>
+                  <h3 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest mb-4">Risk History Trend</h3>
                   <StudentTrendChart data={selectedStudent.historicalRiskScores} />
                 </div>
-                <button 
-                  onClick={() => setSelectedStudent(null)}
-                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-all mt-4 lg:hidden"
-                >
-                  Return to Registry
-                </button>
               </div>
             </div>
           )}
@@ -321,59 +357,32 @@ const App: React.FC = () => {
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
               <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2">
                 <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
-                Data Hub: Weekly Pull
+                Sync Data: ManageBac
               </h3>
               <div className="space-y-4">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileUpload} 
-                  className="hidden" 
-                  accept=".csv" 
-                />
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".csv" />
                 <button 
                   onClick={() => fileInputRef.current?.click()} 
                   className="w-full p-10 border-2 border-dashed border-slate-200 rounded-3xl text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all group flex flex-col items-center justify-center"
                 >
                   <svg className="w-12 h-12 text-slate-300 group-hover:text-blue-500 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                  <span className="text-sm font-black text-slate-700 block uppercase tracking-tight">Sync ManageBac Data</span>
-                  <span className="text-[10px] text-slate-400 block mt-2 font-bold uppercase tracking-widest">Select Weekly CSV Export</span>
+                  <span className="text-sm font-black text-slate-700 block uppercase tracking-tight">Upload Weekly Data Pull</span>
                 </button>
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={downloadTemplate} className="py-3 bg-slate-50 border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-600 rounded-2xl hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    Template
-                  </button>
-                  <div className="relative">
-                    <input 
-                      type="email" 
-                      value={coordinatorEmail}
-                      onChange={(e) => setCoordinatorEmail(e.target.value)}
-                      placeholder="Coord. Email"
-                      className="w-full h-full border border-slate-200 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-tight focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400"
-                    />
-                  </div>
+                  <button onClick={downloadTemplate} className="py-3 bg-slate-50 border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-600 rounded-2xl hover:bg-slate-100 transition-all">Template</button>
+                  <input type="email" value={coordinatorEmail} onChange={(e) => setCoordinatorEmail(e.target.value)} placeholder="Coord. Email" className="border border-slate-200 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-tight focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                 </div>
               </div>
             </div>
-
             <SettingsPanel weights={weights} onUpdate={setWeights} />
           </div>
         </div>
       </main>
 
-      <footer className="bg-slate-900 text-slate-500 p-8 border-t border-slate-800">
+      <footer className="bg-slate-900 text-slate-500 p-8 border-t border-slate-800 mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] font-black uppercase tracking-[0.2em]">
-          <div className="flex items-center gap-3">
-            <span className="text-blue-500">RE:ASoN</span> 
-            <span className="opacity-40">|</span> 
-            DP Risk Analytics Engine v2.6
-          </div>
-          <div className="text-slate-700 text-center">Pure Points Aggregate vs Weighted Risk Protocol</div>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-blue-400 transition-all">Documentation</a>
-            <a href="#" className="hover:text-blue-400 transition-all">Privacy</a>
-          </div>
+          <div className="flex items-center gap-3"><span className="text-blue-500">RE:ASoN</span> <span className="opacity-40">|</span> DP Risk Analytics Engine</div>
+          <div className="text-slate-700">Privately Listed Dashboard</div>
         </div>
       </footer>
     </div>

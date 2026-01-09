@@ -3,12 +3,15 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 
-console.log("RE:ASoN: Transpilation successful. Starting React mount...");
+console.log("%cRE:ASoN System: Starting Initialization Protocol...", "color: #3b82f6; font-weight: 900; font-size: 14px;");
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  console.error("RE:ASoN: Root element missing!");
-} else {
+const bootApp = () => {
+  const rootElement = document.getElementById('root');
+  if (!rootElement) {
+    console.error("Critical: Root element 'root' not found in DOM.");
+    return;
+  }
+
   try {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
@@ -16,8 +19,11 @@ if (!rootElement) {
         <App />
       </React.StrictMode>
     );
-    console.log("RE:ASoN: Application rendered successfully.");
+    console.log("%cRE:ASoN System: Successfully rendered UI tree.", "color: #10b981; font-weight: 900;");
   } catch (err) {
-    console.error("RE:ASoN: React Mount Error:", err);
+    console.error("Critical: React render cycle failed.", err);
   }
-}
+};
+
+// Use a small delay to ensure Babel-transpiled components are fully evaluated
+setTimeout(bootApp, 10);
