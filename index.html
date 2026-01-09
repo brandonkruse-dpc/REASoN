@@ -9,7 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script>
-    // 1. More robust process shim for browser libraries
+    // 1. Standard environment shimming to prevent SDK crashes
     window.process = { 
       env: { 
         NODE_ENV: 'production',
@@ -19,19 +19,23 @@
       browser: true
     };
     
-    // 2. Visual error handler to debug blank screens in production
+    // 2. Global error handler for deployment diagnostics
     window.onerror = function(message, source, lineno, colno, error) {
+      console.error("Critical RE:ASoN Error:", message);
       const root = document.getElementById('root');
+      
+      // If the app stays blank or hangs on loading, provide a visible diagnostic
       if (root) {
         root.innerHTML = `
-          <div style="padding: 30px; color: #721c24; background: #fff5f5; border: 2px solid #feb2b2; border-radius: 12px; margin: 20px; font-family: sans-serif; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
-            <h3 style="margin-top: 0; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #c53030;">Initialization Error</h3>
-            <p style="font-size: 14px; color: #4a5568;">The application failed to boot. This usually happens due to MIME type restrictions on static servers or dependency resolution errors.</p>
-            <div style="background: #2d3748; color: #edf2f7; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; margin-top: 15px; overflow-x: auto;">
-              <p><strong>Message:</strong> ${message}</p>
-              <p><strong>Source:</strong> ${source}:${lineno}</p>
-              ${error ? `<pre style="margin-top: 10px; border-top: 1px solid #4a5568; pt: 10px;">${error.stack}</pre>` : ''}
+          <div style="padding: 40px; max-width: 600px; margin: 40px auto; color: #721c24; background: #fff5f5; border: 2px solid #feb2b2; border-radius: 20px; font-family: 'Inter', sans-serif; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em; color: #c53030; font-size: 20px;">Initialization Failed</h3>
+            <p style="font-size: 14px; color: #4a5568; line-height: 1.6;">The application encountered a fatal error during startup on GitHub Pages.</p>
+            <div style="background: #1a202c; color: #a0aec0; padding: 20px; border-radius: 12px; font-family: monospace; font-size: 12px; margin-top: 20px; overflow-x: auto; border: 1px solid #2d3748;">
+              <p style="color: #cbd5e0; margin-bottom: 8px;"><strong>Diagnostic Message:</strong></p>
+              <code style="color: #fc8181; display: block; margin-bottom: 12px;">${message}</code>
+              <p style="color: #718096;">Location: ${source}:${lineno}</p>
             </div>
+            <p style="font-size: 12px; color: #718096; margin-top: 20px; font-style: italic;">Tip: Check the browser console (F12) for detailed network and module resolution logs.</p>
           </div>
         `;
       }
@@ -62,6 +66,7 @@
       </div>
     </div>
   </div>
-  <script type="module" src="index.tsx"></script>
+  <!-- Use relative path with dot-slash for GitHub Project Pages support -->
+  <script type="module" src="./index.tsx"></script>
 </body>
 </html>
