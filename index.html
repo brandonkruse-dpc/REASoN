@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RE:ASoN - Risk Engine</title>
+  <title>RE:ASoN - IB Risk Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
   <!-- Babel Standalone for browser-side TSX transpilation -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- STRICT IMPORT MAP: Unified to React 18.3.1 to solve Error #31 -->
+  <!-- STRICT IMPORT MAP: Unified to React 18.3.1 ONLY -->
   <script type="importmap">
 {
   "imports": {
@@ -38,11 +38,12 @@
       to { opacity: 1; transform: translateY(0); }
     }
     .animate-in { animation: fadeIn 0.4s ease-out forwards; }
+    
+    input[type="range"] { accent-color: #3b82f6; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 overflow-x-hidden">
   <div id="root">
-    <!-- Sophisticated System Loader -->
     <div class="flex items-center justify-center min-h-screen">
       <div class="flex flex-col items-center gap-6">
         <div class="relative">
@@ -51,13 +52,12 @@
         </div>
         <div class="text-center">
           <p class="text-slate-900 font-black uppercase tracking-[0.4em] text-xs">RE:ASoN</p>
-          <p class="text-slate-400 font-bold uppercase tracking-widest text-[9px] mt-2 animate-pulse">Establishing Data Secure-Link</p>
+          <p class="text-slate-400 font-bold uppercase tracking-widest text-[9px] mt-2 animate-pulse">Initializing Analytics Core</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Loading consolidated index.tsx as a Babel module -->
   <script 
     type="text/babel" 
     data-type="module" 
