@@ -3,15 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RE:ASoN - IB Risk Engine</title>
+  <title>RE:ASoN - IB DP Risk Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  <!-- Babel Standalone for browser-side TSX transpilation -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- STRICT IMPORT MAP: Unified to React 18.3.1 ONLY -->
   <script type="importmap">
 {
   "imports": {
@@ -27,32 +25,25 @@
 </script>
 
   <style>
-    body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #f8fafc; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
     .animate-in { animation: fadeIn 0.4s ease-out forwards; }
-    input[type="range"] { accent-color: #3b82f6; }
+    input[type="range"] { accent-color: #2563eb; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 overflow-x-hidden">
+<body>
   <div id="root">
     <div class="flex items-center justify-center min-h-screen">
       <div class="flex flex-col items-center gap-6">
-        <div class="relative">
-          <div class="w-16 h-16 border-[6px] border-slate-200 rounded-full"></div>
-          <div class="w-16 h-16 border-[6px] border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-        </div>
-        <div class="text-center">
-          <p class="text-slate-900 font-black uppercase tracking-[0.4em] text-xs">RE:ASoN</p>
-          <p class="text-slate-400 font-bold uppercase tracking-widest text-[9px] mt-2 animate-pulse">Establishing Analytics Secure-Link</p>
-        </div>
+        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-slate-400 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">RE:ASoN Terminal Loading</p>
       </div>
     </div>
   </div>
