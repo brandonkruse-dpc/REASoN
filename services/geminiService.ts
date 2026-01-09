@@ -2,7 +2,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Student, RiskAnalysis } from "../types.ts";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+/**
+ * Safely retrieves the API key. 
+ * Prevents crash if 'process' is not immediately available during module evaluation.
+ */
+const getApiKey = (): string => {
+  try {
+    return (window as any).process?.env?.API_KEY || "";
+  } catch (e) {
+    return "";
+  }
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 export async function analyzeStudentRisk(student: Student): Promise<RiskAnalysis> {
   const prompt = `Analyze the following IB DP student data and identify failure risks.
