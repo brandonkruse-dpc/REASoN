@@ -1,5 +1,5 @@
 {
-  "name": "RE:ASoN - IB Risk Engine",
-  "description": "Risk Engine: Assessing Students of Note. A comprehensive performance analytics tool for IB DP Coordinators to identify students at risk using ManageBac and Google Workspace data.",
+  "name": "RE:ASoN - IB DP Risk Engine",
+  "description": "Risk Engine for IB DP Coordinators. High-density discrete performance analytics using OneRoster 1.2 data streams.",
   "requestFramePermissions": []
 }
